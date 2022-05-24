@@ -8,44 +8,51 @@ TOKEN = ''
 client = discord.Client()
 
 
-def extractTeamName(msg):
-    team_name = msg
-    return team_name
-
-
-def getScore():
+def getSoup():
     driver = webdriver.Firefox()
     driver.get("https://www.flashscore.pt/")
-    driver.implicitly_wait(5)
+    driver.implicitly_wait(10)
 
     live_tab = driver.find_element(by=By.XPATH,
-                                   value="/html/body/div[7]/div[1]/div/div[1]/div[2]/div[4]/div[2]"
+                                   value="/html/body/div[6]/div[1]/div/div[1]/div[2]/div[4]/div[2]"
                                          "/div/div[1]/div[1]/div[2]")
     live_tab.click()
 
-    scores_div = driver.find_element(by=By.XPATH, value="/html/body/div[7]/div[1]/div/div[1]/div[2]/div[4]/div[2]/div")
+    scores_div = driver.find_element(by=By.XPATH, value="/html/body/div[6]/div[1]/div/div[1]/div[2]/div[4]/div[2]/div")
     html_content = scores_div.get_attribute('outerHTML')
-    soup = BeautifulSoup(html_content, 'html.parser')
 
+    return BeautifulSoup(html_content, 'html.parser')
+
+
+def extractTeamName(msg):
+    split_msg = msg.split(" ", 1)
+    team_name = split_msg[1].strip()
+    print(team_name)
+    return team_name
+
+
+def getScore(team):
+    soup = getSoup()
     home_team = soup.find_all('div', class_='event__participant--home')
     home_score = soup.find_all('div', class_='event__score--home')
     away_team = soup.find_all('div', class_='event__participant--away')
     away_score = soup.find_all('div', class_='event__score--away')
 
-    score_str = home_team[0].get_text() + ' ' + home_score[0].get_text() + ' - ' + \
-                away_score[0].get_text() + ' ' + away_team[0].get_text()
-    print(score_str)
+    #score_str = home_team[0].get_text() + ' ' + home_score[0].get_text() + ' - ' + \
+    #            away_score[0].get_text() + ' ' + away_team[0].get_text()
+    #print(score_str)
 
-    return score_str
+    for item in home_team:
+        item_team = item.get_text().lower()
+        if team in item_team:
+            print(item.get_text())
+
+    return team
 
 
 def requestType(msg):
     if msg.startswith('!score'):
         return 'score'
-    elif msg.startswith('!lolgame'):
-        return 'lolgame'
-    elif msg.startswith('!help'):
-        return 'help'
     else:
         return False
 
@@ -67,7 +74,8 @@ async def on_message(message):
 
     if message.channel.name == 'testing':
         if requestType(user_message) == 'score':
-            await message.channel.send(getScore())
+            team = extractTeamName(user_message)
+            await message.channel.send(getScore(team))
             return
         elif requestType(user_message) == 'lolgame':
             await message.channel.send("Hi2")
